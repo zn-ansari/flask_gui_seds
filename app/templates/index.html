@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+        <title>SEDS GUI v1.0</title>
+        <head>
+            <script src="//code.jquery.com/jquery-3.3.1.min.js"></script>
+            <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script> 
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+           
+            <script type="text/javascript">
+                $(document).ready(function(){
+                var socket = io.connect('http://' + document.domain + ':' + location.port);
+                socket.on('connect', function() {
+                    socket.emit('my event', {data: 'I\'m connected!'});
+                    });
+                socket.on('emit event', function(msg){
+                    socket.emit('my event', {data: 'Data received yo ' + msg.number.toString() });
+                    numbers_string = '';
+                    numbers_string = numbers_string + msg.number.toString();
+                    $('#tcom').html(numbers_string);
+                    });
+                socket.on('lat lon',function(msg){
+                    lat = msg.lat;
+                    lon = msg.lon;
+                });
+                });
+            </script>
+        </head>
+<body>
+    <div class = "container-fluid" id="header" style="position: relative;overflow: hidden; font-size: 15pt; box-sizing: border-box;">
+        <div class="row btn-group">
+            <div class="btn btn-primary col-sm-2 " id="cntnr_phase" style="position: relative; float: left;">
+                <label for='phase'>Phase </label>
+                <div id='phase' style="font-size: 12pt"> value for phase</div>
+            </div>
+            <div class="btn col-sm-2 btn-primary" id="cntnr_alt" style="position: relative; float: left;">
+                <label for='alt'>Altitude </label>
+                <div id='alt' style="font-size: 12pt"> value for altitude</div>
+            </div>
+            <div class="btn col-sm-2 btn-primary" id="cntnr_vel" style="position: relative; float: left;">
+                <label for='vel'>Velocity </label>
+                <div id='vel' style="font-size: 12pt"> value for velocity</div>
+            </div>
+            <div class="btn col-sm-2 btn-primary" id="cntnr_acc" style="position: relative; float: left;">
+                <label for='acc'>Acceleration </label>
+                <div id='acc' style="font-size: 12pt"> value for acceleration</div>
+            </div>
+            <div class=" btn col-sm-2 btn-primary" id="cntnr_ralt" style="position: relative; float: left;">
+                <label for='ralt'>Raw Alt </label>
+                <div id='ralt' style="font-size: 12pt" > value for raw altitude</div>
+            </div>
+            
+        </div>
+        <div class="row">
+            <div class="col-sm-2" id="cntnr_racc" style="position: relative; float: left;">
+                <label for='racc'>Raw Acc </label>
+                <div id='racc' style="font-size: 12pt"> value for raw acceleration</div>
+            </div>
+            <div class="col-sm-2" id="cntnr_lat" style="position: relative; float: left;">
+                <label for='lat'>Latitude </label>
+                <div id='lat' style="font-size: 12pt"> value for latitude</div>
+            </div>
+            <div class="col-sm-2" id="cntnr_lon" style="position: relative; float: left;">
+                <label for='lon'>Longitude </label>
+                <div id='lon' style="font-size: 12pt"> value for longitude</div>
+            </div>
+            <div class="col-sm-2" id="cntnr_temp" style="position: relative; float: left;">
+                <label for='temp'>Temperature </label>
+                <div id='temp' style="font-size: 12pt" > value for temperature</div>
+            </div>
+            <div class="col-sm-2" id="cntnr_batt" style="position: relative; float: left;">
+                <label for='batt'>Battery Voltage </label>
+                <div id='batt' style="font-size: 12pt" > value for battery voltage</div>
+            </div>
+        </div>
+                        
+    </div>
+
+    <div class = "container-fluid" id="thething" style="position: relative; overflow: hidden;">
+        <div id="leftThing" style="position: relative; width: 60%; float: left;">       
+                <div id="demoMap" style="height:500px"></div>
+                <!-- <script src="{{url_for('static', filename='OpenLayers.js')}}"></script>-->
+                <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+                <script type="text/javascript">
+                    map = new OpenLayers.Map("demoMap");
+                    map.addLayer(new OpenLayers.Layer.OSM());
+                    var lonLat = new OpenLayers.LonLat(-78.7890, 43.0008 ).transform(
+                    
+                        new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                        map.getProjectionObject() // to Spherical Mercator Projection
+                        );
+                    var init_lonlat = lonLat;                       
+                    var zoom=16;                    
+                    var markers = new OpenLayers.Layer.Markers( "Markers" );
+                    map.addLayer(markers);    
+                    markers.addMarker(new OpenLayers.Marker(lonLat));
+                    map.setCenter(lonLat,zoom)
+                    var socket = io.connect('http://' + document.domain + ':' + location.port);                    
+                                
+                        // map = new OpenLayers.Map("demoMap");
+                        // map.addLayer(new OpenLayers.Layer.OSM());
+                    socket.on('lat lon', function(msg){
+                        // num = msg.number/10;
+
+                        var lonLatv = new OpenLayers.LonLat(-msg.lon, msg.lat ).transform(
+                        new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                        map.getProjectionObject() // to Spherical Mercator Projection
+                        );
+                        var markers = new OpenLayers.Layer.Markers( "Markers" );
+                        map.addLayer(markers);                        
+                        markers.addMarker(new OpenLayers.Marker(lonLatv));
+                        // new vector graphic layer
+                        var vector = new OpenLayers.Layer.Vector();    
+                        var line = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString([init_lonlat, lonLatv]));
+                        // Make line
+                        // Add new feature to layer named by vector
+                        vector.addFeatures([line]);
+                        // Add vector layer to map
+                        map.addLayers([vector]);                        
+                        init_lonlat = lonLatv;   
+                        // markers.addMarker(new OpenLayers.Marker(lonLat));
+                        // map.setCenter(lonLat,16);                  
+                    });
+                </script>
+        </div>
+        <div class = "container-fluid" id="rightThing" style="position: relative; float: left;">         
+            <p>Display the projectile</p>
+        </div>
+    </div>
+
+    <div class="container-fluid" id="COM" >
+        <div >
+            <label for="tcom">COM Port : </label>
+        </div>
+        <div>
+            <textarea id="tcom" name="COMPort" placeholder="Empty now....will display when received!" style="width:60%; height:100px"></textarea>
+            <div id = "log"></div>
+        </div>
+    </div>
+    
+</body>
+</html>
